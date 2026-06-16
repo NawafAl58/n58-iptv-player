@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import Hls from 'hls.js';
-import { Search, Upload, Play, Tv, List, Globe, Film, Clapperboard, Tv2, Baby } from 'lucide-react';
+import { Search, Upload, Play, Tv, List, Globe, Film, Clapperboard, Tv2, Baby, Info, Settings, User, LogOut } from 'lucide-react';
 
 interface Channel {
   name: string;
@@ -11,21 +11,20 @@ interface Channel {
 }
 
 const DEFAULT_PLAYLISTS = [
-  { name: 'Arabic Channels / قنوات عربية', url: 'https://iptv-org.github.io/iptv/languages/ara.m3u', icon: Globe },
-  { name: 'Arabic Movies / أفلام عربية', url: 'https://iptv-org.github.io/iptv/categories/movies.m3u', icon: Clapperboard },
-  { name: 'Arabic Series / مسلسلات عربية', url: 'https://iptv-org.github.io/iptv/categories/series.m3u', icon: Tv2 },
-  { name: 'Anime & Cartoon / أنمي وكرتون', url: 'https://iptv-org.github.io/iptv/categories/animation.m3u', icon: Baby },
-  { name: 'Public Domain Movies', url: 'https://raw.githubusercontent.com/pndurette/public-domain-movies-m3u/master/public-domain-movies.m3u', icon: Film },
+  { name: 'Arabic Channels', ar: 'قنوات عربية', url: 'https://iptv-org.github.io/iptv/languages/ara.m3u', icon: Globe },
+  { name: 'Arabic Movies', ar: 'أفلام عربية', url: 'https://iptv-org.github.io/iptv/categories/movies.m3u', icon: Clapperboard },
+  { name: 'Arabic Series', ar: 'مسلسلات عربية', url: 'https://iptv-org.github.io/iptv/categories/series.m3u', icon: Tv2 },
+  { name: 'Anime & Cartoon', ar: 'أنمي وكرتون', url: 'https://iptv-org.github.io/iptv/categories/animation.m3u', icon: Baby },
+  { name: 'Public Domain', ar: 'مشاع إبداعي', url: 'https://raw.githubusercontent.com/pndurette/public-domain-movies-m3u/master/public-domain-movies.m3u', icon: Film },
 ];
 
 export default function IPTVPlayer() {
-  const [playlistUrl, setPlaylistUrl] = useState('');
   const [channels, setChannels] = useState<Channel[]>([]);
-  const [filteredChannels, setFilteredChannels] = useState<Channel[]>([]);
   const [groups, setGroups] = useState<string[]>([]);
   const [selectedGroup, setSelectedGroup] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentChannel, setCurrentChannel] = useState<Channel | null>(null);
+  const [activePlaylist, setActivePlaylist] = useState(DEFAULT_PLAYLISTS[0]);
   const [loading, setLoading] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -58,15 +57,15 @@ export default function IPTVPlayer() {
     }
     
     setChannels(parsedChannels);
-    setFilteredChannels(parsedChannels);
     setGroups(Array.from(parsedGroups));
     setSelectedGroup('All');
   };
 
-  const loadPlaylistFromUrl = async (url: string) => {
+  const loadPlaylist = async (playlist: typeof DEFAULT_PLAYLISTS[0]) => {
     setLoading(true);
+    setActivePlaylist(playlist);
     try {
-      const res = await fetch(url);
+      const res = await fetch(playlist.url);
       const text = await res.text();
       parseM3U(text);
     } catch (err) {
@@ -76,36 +75,21 @@ export default function IPTVPlayer() {
     }
   };
 
-  const handleUrlSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (playlistUrl) loadPlaylistFromUrl(playlistUrl);
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        parseM3U(event.target?.result as string);
-      };
-      reader.readAsText(file);
-    }
-  };
-
   useEffect(() => {
-    loadPlaylistFromUrl(DEFAULT_PLAYLISTS[0].url);
+    loadPlaylist(DEFAULT_PLAYLISTS[0]);
   }, []);
 
-  useEffect(() => {
-    let filtered = channels;
-    if (selectedGroup !== 'All') {
-      filtered = filtered.filter(c => c.group === selectedGroup);
-    }
-    if (searchQuery) {
-      filtered = filtered.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()));
-    }
-    setFilteredChannels(filtered);
-  }, [selectedGroup, searchQuery, channels]);
+  const filteredChannels = useMemo(() => {
+    return channels.filter(c => {
+      const matchesGroup = selectedGroup === 'All' || c.group === selectedGroup;
+      const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesGroup && matchesSearch;
+    });
+  }, [channels, selectedGroup, searchQuery]);
+
+  const heroChannel = useMemo(() => {
+    return channels[Math.floor(Math.random() * Math.min(channels.length, 10))] || null;
+  }, [channels]);
 
   useEffect(() => {
     if (currentChannel && videoRef.current) {
@@ -114,175 +98,262 @@ export default function IPTVPlayer() {
         const hls = new Hls();
         hls.loadSource(currentChannel.url);
         hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          video.play();
-        });
+        hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = currentChannel.url;
-        video.addEventListener('loadedmetadata', () => {
-          video.play();
-        });
+        video.addEventListener('loadedmetadata', () => video.play());
       }
     }
   }, [currentChannel]);
 
   return (
-    <div className="min-h-screen bg-background text-white font-sans p-4 md:p-8">
+    <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-purple-500/30 overflow-x-hidden">
       <Head>
-        <title>N58 IPTV Player</title>
+        <title>N58 PREMIUM | Ultra Modern IPTV</title>
       </Head>
 
-      <header className="max-w-6xl mx-auto flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold neon-text bg-gradient-to-r from-accent to-ice bg-clip-text text-transparent">
-          N58 PLAYER
-        </h1>
-        <div className="text-sm opacity-50">Made by Nawaf</div>
-      </header>
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-white/5 px-6 py-4 flex justify-between items-center backdrop-blur-xl">
+        <div className="flex items-center gap-8">
+          <h1 className="text-2xl font-black tracking-tighter neon-text-purple bg-gradient-to-r from-[#a855f7] to-[#38bdf8] bg-clip-text text-transparent">
+            N58 PREMIUM
+          </h1>
+          <div className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-400">
+            {DEFAULT_PLAYLISTS.map((p) => (
+              <button 
+                key={p.url} 
+                onClick={() => loadPlaylist(p)}
+                className={`hover:text-white transition-colors relative py-1 ${activePlaylist.url === p.url ? 'text-white' : ''}`}
+              >
+                {p.name}
+                {activePlaylist.url === p.url && <div className="absolute -bottom-4 left-0 right-0 h-0.5 bg-[#a855f7] shadow-[0_0_10px_#a855f7]" />}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          <div className="relative group hidden sm:block">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-[#38bdf8] transition-colors" size={18} />
+            <input 
+              type="text" 
+              placeholder="Search anything..." 
+              className="bg-white/5 border border-white/10 rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] transition-all w-64"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <button className="p-2 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white"><User size={20} /></button>
+          <button className="p-2 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white"><Settings size={20} /></button>
+        </div>
+      </nav>
 
-      <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <section className="lg:col-span-1 space-y-6">
-          <div className="glass p-6 rounded-2xl neon-border">
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-              <List className="text-accent" /> Playlist Setup
-            </h2>
+      <main className="pt-20 pb-20">
+        {/* Hero Section */}
+        {!currentChannel && heroChannel && (
+          <section className="relative h-[85vh] w-full px-6 md:px-12 mb-12 group">
+            <div className="absolute inset-0 rounded-3xl overflow-hidden mx-6 md:mx-12 mt-4">
+              <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent z-10" />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#050505] via-[#050505]/40 to-transparent z-10" />
+              <img 
+                src={heroChannel.logo || "https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?q=80&w=2069&auto=format&fit=crop"} 
+                className="w-full h-full object-cover scale-105 group-hover:scale-100 transition-transform duration-1000 opacity-60 grayscale-[30%]"
+                alt="hero"
+              />
+            </div>
             
-            <div className="grid grid-cols-1 gap-2 mb-4">
-              {DEFAULT_PLAYLISTS.map((p) => (
-                <button
-                  key={p.url}
-                  onClick={() => loadPlaylistFromUrl(p.url)}
-                  className="flex items-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 p-3 rounded-lg text-sm transition-all group"
+            <div className="relative z-20 h-full flex flex-col justify-end pb-24 px-12 md:px-24 max-w-4xl">
+              <span className="text-[#38bdf8] font-bold tracking-widest text-sm mb-4 uppercase flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#38bdf8] animate-pulse shadow-[0_0_8px_#38bdf8]" />
+                Trending in {activePlaylist.name}
+              </span>
+              <h2 className="text-6xl md:text-8xl font-black mb-6 leading-none">
+                {heroChannel.name}
+              </h2>
+              <p className="text-lg text-gray-400 mb-8 line-clamp-3 max-w-2xl font-medium">
+                Experience world-class streaming with N58 Premium. Direct high-definition access to {heroChannel.name} with low-latency playback technology. Part of our curated {activePlaylist.ar} collection.
+              </p>
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => setCurrentChannel(heroChannel)}
+                  className="bg-white text-black px-8 py-4 rounded-xl font-black flex items-center gap-3 hover:scale-105 transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-95"
                 >
-                  <p.icon size={18} className="text-ice group-hover:scale-110 transition-transform" />
-                  <span className="font-medium">{p.name}</span>
+                  <Play fill="black" size={24} /> تشغيل الآن / Watch Now
+                </button>
+                <button className="glass px-8 py-4 rounded-xl font-bold flex items-center gap-3 border border-white/10 hover:bg-white/10 transition-all">
+                  <Info size={24} /> More Info
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Video Player Section */}
+        {currentChannel && (
+          <section className="px-6 md:px-12 mb-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <div className="max-w-6xl mx-auto">
+              <div className="glass rounded-3xl overflow-hidden border border-white/10 shadow-2xl shadow-purple-500/10 relative group">
+                <video 
+                  ref={videoRef} 
+                  controls 
+                  className="w-full aspect-video bg-black"
+                />
+                <button 
+                  onClick={() => setCurrentChannel(null)}
+                  className="absolute top-6 right-6 p-3 glass rounded-full border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/20"
+                >
+                  <LogOut className="rotate-180" size={20} />
+                </button>
+              </div>
+              <div className="mt-8 flex justify-between items-end">
+                <div>
+                  <h3 className="text-3xl font-black mb-2">{currentChannel.name}</h3>
+                  <div className="flex items-center gap-4 text-sm text-gray-400">
+                    <span className="bg-[#a855f7]/20 text-[#a855f7] px-3 py-1 rounded-md border border-[#a855f7]/30 font-bold uppercase tracking-wider text-xs">Live HD</span>
+                    <span>{currentChannel.group}</span>
+                    <span className="flex items-center gap-1"><User size={14}/> 12.4k watching</span>
+                  </div>
+                </div>
+                <button className="glass p-4 rounded-2xl border border-white/10 text-gray-400 hover:text-white transition-all">
+                  <Upload size={24}/>
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Content Grid */}
+        <section className="px-6 md:px-12">
+          <div className="flex items-center justify-between mb-8">
+            <h4 className="text-2xl font-black flex items-center gap-3">
+              <div className="w-1.5 h-8 bg-[#a855f7] rounded-full shadow-[0_0_12px_#a855f7]" />
+              {activePlaylist.name} Collection
+            </h4>
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
+              {groups.map(group => (
+                <button
+                  key={group}
+                  onClick={() => setSelectedGroup(group)}
+                  className={`px-6 py-2 rounded-full text-sm font-bold transition-all border ${
+                    selectedGroup === group 
+                    ? 'bg-[#a855f7] border-[#a855f7] text-white shadow-[0_0_15px_#a855f7]/40' 
+                    : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/30 hover:text-white'
+                  }`}
+                >
+                  {group}
                 </button>
               ))}
             </div>
+          </div>
 
-            <div className="h-px bg-white/10 my-4"></div>
-
-            <form onSubmit={handleUrlSubmit} className="space-y-4">
-              <input
-                type="text"
-                placeholder="M3U Playlist URL"
-                className="w-full bg-white/5 border border-white/10 p-3 rounded-lg focus:outline-none focus:border-accent transition-colors"
-                value={playlistUrl}
-                onChange={(e) => setPlaylistUrl(e.target.value)}
-              />
-              <button className="w-full bg-accent hover:bg-accent/80 p-3 rounded-lg font-bold transition-all flex items-center justify-center gap-2">
-                <Play size={18} /> Load URL
-              </button>
-            </form>
-            <div className="mt-4 flex items-center gap-4">
-              <div className="h-px flex-1 bg-white/10"></div>
-              <span className="text-xs opacity-50 uppercase tracking-widest">OR</span>
-              <div className="h-px flex-1 bg-white/10"></div>
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+              {[...Array(12)].map((_, i) => (
+                <div key={i} className="aspect-[2/3] bg-white/5 rounded-2xl animate-pulse" />
+              ))}
             </div>
-            <label className="mt-4 w-full flex items-center justify-center gap-2 bg-white/5 border border-white/10 p-3 rounded-lg cursor-pointer hover:bg-white/10 transition-colors text-sm">
-              <Upload size={18} /> Upload M3U File
-              <input type="file" className="hidden" accept=".m3u" onChange={handleFileUpload} />
-            </label>
-          </div>
-
-          <div className="glass p-6 rounded-2xl border border-white/10">
-             <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={18} />
-                <input
-                  type="text"
-                  placeholder="Search channels..."
-                  className="w-full bg-white/5 border border-white/10 p-3 pl-10 rounded-lg focus:outline-none focus:border-ice transition-colors"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-             </div>
-             <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                {groups.map(group => (
-                  <button
-                    key={group}
-                    onClick={() => setSelectedGroup(group)}
-                    className={`text-xs px-3 py-1.5 rounded-full transition-all ${
-                      selectedGroup === group 
-                      ? 'bg-ice text-black font-bold' 
-                      : 'bg-white/5 hover:bg-white/10 border border-white/10'
-                    }`}
-                  >
-                    {group}
-                  </button>
-                ))}
-             </div>
-          </div>
-        </section>
-
-        <section className="lg:col-span-2 space-y-6">
-          <div className="glass aspect-video rounded-2xl neon-border overflow-hidden relative bg-black">
-            {loading ? (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-12 h-12 border-4 border-ice border-t-transparent rounded-full animate-spin"></div>
-              </div>
-            ) : currentChannel ? (
-              <video ref={videoRef} controls className="w-full h-full" />
-            ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-white/20">
-                <Tv size={64} className="mb-4" />
-                <p>Select a channel to start streaming</p>
-              </div>
-            )}
-            {currentChannel && (
-              <div className="absolute bottom-12 left-4 glass px-4 py-2 rounded-lg border-accent/30 text-sm">
-                Now Playing: <span className="font-bold text-ice">{currentChannel.name}</span>
-              </div>
-            )}
-          </div>
-
-          <div className="glass rounded-2xl border border-white/10 p-4 h-[500px] flex flex-col">
-            <h3 className="text-lg font-semibold mb-4 px-2">Channels ({filteredChannels.length})</h3>
-            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-2">
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
               {filteredChannels.map((channel, idx) => (
                 <button
                   key={idx}
-                  onClick={() => setCurrentChannel(channel)}
-                  className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/10 transition-all text-left group"
+                  onClick={() => {
+                    setCurrentChannel(channel);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="group relative aspect-[2/3] rounded-2xl overflow-hidden bg-[#111] border border-white/5 hover:border-[#a855f7]/50 transition-all duration-500 hover:-translate-y-2 active:scale-95"
                 >
-                  <div className="w-12 h-12 bg-white/5 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden border border-white/10">
-                    {channel.logo ? (
-                      <img src={channel.logo} alt="" className="w-full h-full object-contain" />
-                    ) : (
-                      <Tv className="text-white/20" />
-                    )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10 opacity-80" />
+                  {channel.logo ? (
+                    <img src={channel.logo} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center">
+                      <Tv className="text-white/10 mb-4" size={48} />
+                      <span className="text-xs text-gray-500 font-bold uppercase">{channel.name}</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 flex items-center justify-center z-20 opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-sm">
+                    <div className="w-16 h-16 bg-[#a855f7] rounded-full flex items-center justify-center shadow-[0_0_30px_#a855f7] scale-75 group-hover:scale-100 transition-transform duration-500">
+                      <Play fill="white" size={32} />
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate group-hover:text-ice transition-colors">{channel.name}</p>
-                    <p className="text-xs opacity-50 truncate">{channel.group}</p>
+                  <div className="absolute bottom-4 left-4 right-4 z-30">
+                    <p className="font-bold text-sm truncate mb-1 text-white group-hover:text-[#a855f7] transition-colors">
+                      {channel.name}
+                    </p>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest truncate">
+                      {channel.group}
+                    </p>
                   </div>
-                  <Play size={16} className="text-accent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </button>
               ))}
             </div>
-          </div>
+          )}
         </section>
       </main>
 
-      <footer className="max-w-6xl mx-auto mt-12 pt-8 border-t border-white/5 flex justify-between items-center text-xs opacity-40">
-        <p>© 2026 N58 IPTV. Strictly Made by Nawaf.</p>
-        <div className="flex gap-4">
-          <span>Obsidian/Neon Edition</span>
-          <span>Powered by hls.js</span>
+      <footer className="px-12 py-12 border-t border-white/5 bg-[#080808]">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+          <div>
+            <h5 className="text-xl font-black neon-text-purple mb-4">N58 PREMIUM</h5>
+            <p className="text-sm text-gray-500 max-w-sm">The absolute pinnacle of modern IPTV streaming. Custom engineered for speed, aesthetic, and reliability.</p>
+          </div>
+          <div className="flex gap-12 text-sm text-gray-400 font-medium">
+            <div className="flex flex-col gap-3">
+              <span className="text-white font-bold">Platform</span>
+              <a href="#" className="hover:text-[#a855f7]">Web Player</a>
+              <a href="#" className="hover:text-[#a855f7]">Mobile App</a>
+              <a href="#" className="hover:text-[#a855f7]">Android TV</a>
+            </div>
+            <div className="flex flex-col gap-3">
+              <span className="text-white font-bold">Community</span>
+              <a href="#" className="hover:text-[#a855f7]">Discord</a>
+              <a href="#" className="hover:text-[#a855f7]">GitHub</a>
+              <a href="#" className="hover:text-[#a855f7]">Twitter</a>
+            </div>
+          </div>
+        </div>
+        <div className="max-w-6xl mx-auto mt-12 pt-8 border-t border-white/5 flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-gray-600">
+          <p>Strictly Made by Nawaf</p>
+          <div className="flex gap-6">
+            <span>Obsidian / Neon Edition v2.0</span>
+            <span>All Rights Reserved 2026</span>
+          </div>
         </div>
       </footer>
 
       <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
+        .glass {
+          background: rgba(255, 255, 255, 0.03);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
         }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
+        .neon-text-purple {
+          text-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
         }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(168, 85, 247, 0.2);
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        ::selection {
+          background: #a855f7;
+          color: white;
+        }
+        ::-webkit-scrollbar {
+          width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+          background: #050505;
+        }
+        ::-webkit-scrollbar-thumb {
+          background: #222;
           border-radius: 10px;
         }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(168, 85, 247, 0.5);
+        ::-webkit-scrollbar-thumb:hover {
+          background: #a855f7;
         }
       `}</style>
     </div>
