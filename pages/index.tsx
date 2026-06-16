@@ -163,11 +163,11 @@ export default function IPTVPlayer() {
                   <button
                     key={group}
                     onClick={() => setSelectedGroup(group)}
-                    className={\`text-xs px-3 py-1.5 rounded-full transition-all \${
+                    className={`text-xs px-3 py-1.5 rounded-full transition-all ${
                       selectedGroup === group 
                       ? 'bg-ice text-black font-bold' 
                       : 'bg-white/5 hover:bg-white/10 border border-white/10'
-                    }\`}
+                    }`}
                   >
                     {group}
                   </button>
@@ -229,7 +229,7 @@ export default function IPTVPlayer() {
         </div>
       </footer>
 
-      <style jsx global>{\`
+      <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px;
         }
@@ -243,7 +243,7 @@ export default function IPTVPlayer() {
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background: rgba(168, 85, 247, 0.5);
         }
-      \`}</style>
+      `}</style>
     </div>
   );
 }
