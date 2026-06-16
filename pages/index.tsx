@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Head from 'next/head';
 import Hls from 'hls.js';
-import { Search, Upload, Play, Tv, List } from 'lucide-react';
+import { Search, Upload, Play, Tv, List, Globe, Film } from 'lucide-react';
 
 interface Channel {
   name: string;
@@ -9,6 +9,12 @@ interface Channel {
   group: string;
   logo: string;
 }
+
+const DEFAULT_PLAYLISTS = [
+  { name: 'Arabic Channels', url: 'https://iptv-org.github.io/iptv/languages/ara.m3u', icon: Globe },
+  { name: 'General Movies', url: 'https://iptv-org.github.io/iptv/categories/movies.m3u', icon: Film },
+  { name: 'Public Domain', url: 'https://raw.githubusercontent.com/pndurette/public-domain-movies-m3u/master/public-domain-movies.m3u', icon: List },
+];
 
 export default function IPTVPlayer() {
   const [playlistUrl, setPlaylistUrl] = useState('');
@@ -18,6 +24,7 @@ export default function IPTVPlayer() {
   const [selectedGroup, setSelectedGroup] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentChannel, setCurrentChannel] = useState<Channel | null>(null);
+  const [loading, setLoading] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const parseM3U = (content: string) => {
@@ -51,17 +58,25 @@ export default function IPTVPlayer() {
     setChannels(parsedChannels);
     setFilteredChannels(parsedChannels);
     setGroups(Array.from(parsedGroups));
+    setSelectedGroup('All');
   };
 
-  const handleUrlSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const loadPlaylistFromUrl = async (url: string) => {
+    setLoading(true);
     try {
-      const res = await fetch(playlistUrl);
+      const res = await fetch(url);
       const text = await res.text();
       parseM3U(text);
     } catch (err) {
-      alert('Failed to fetch playlist. Check URL or CORS settings.');
+      console.error('Failed to fetch playlist:', err);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleUrlSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (playlistUrl) loadPlaylistFromUrl(playlistUrl);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,6 +89,11 @@ export default function IPTVPlayer() {
       reader.readAsText(file);
     }
   };
+
+  useEffect(() => {
+    // Pre-load default Arabic playlist on mount
+    loadPlaylistFromUrl(DEFAULT_PLAYLISTS[0].url);
+  }, []);
 
   useEffect(() => {
     let filtered = channels;
@@ -124,6 +144,22 @@ export default function IPTVPlayer() {
             <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
               <List className="text-accent" /> Playlist Setup
             </h2>
+            
+            <div className="grid grid-cols-1 gap-2 mb-4">
+              {DEFAULT_PLAYLISTS.map((p) => (
+                <button
+                  key={p.url}
+                  onClick={() => loadPlaylistFromUrl(p.url)}
+                  className="flex items-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 p-3 rounded-lg text-sm transition-all group"
+                >
+                  <p.icon size={18} className="text-ice group-hover:scale-110 transition-transform" />
+                  <span className="font-medium">{p.name}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="h-px bg-white/10 my-4"></div>
+
             <form onSubmit={handleUrlSubmit} className="space-y-4">
               <input
                 type="text"
@@ -141,7 +177,7 @@ export default function IPTVPlayer() {
               <span className="text-xs opacity-50 uppercase tracking-widest">OR</span>
               <div className="h-px flex-1 bg-white/10"></div>
             </div>
-            <label className="mt-4 w-full flex items-center justify-center gap-2 bg-white/5 border border-white/10 p-3 rounded-lg cursor-pointer hover:bg-white/10 transition-colors">
+            <label className="mt-4 w-full flex items-center justify-center gap-2 bg-white/5 border border-white/10 p-3 rounded-lg cursor-pointer hover:bg-white/10 transition-colors text-sm">
               <Upload size={18} /> Upload M3U File
               <input type="file" className="hidden" accept=".m3u" onChange={handleFileUpload} />
             </label>
@@ -178,7 +214,11 @@ export default function IPTVPlayer() {
 
         <section className="lg:col-span-2 space-y-6">
           <div className="glass aspect-video rounded-2xl neon-border overflow-hidden relative bg-black">
-            {currentChannel ? (
+            {loading ? (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-12 h-12 border-4 border-ice border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : currentChannel ? (
               <video ref={videoRef} controls className="w-full h-full" />
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-white/20">
