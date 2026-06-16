@@ -4,7 +4,11 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "static": "next build",
+    "cap-copy": "npx cap copy",
+    "cap-open-ios": "npx cap open ios",
+    "cap-open-android": "npx cap open android"
   },
   "dependencies": {
     "next": "latest",
@@ -13,7 +17,10 @@
     "hls.js": "latest",
     "lucide-react": "latest",
     "clsx": "latest",
-    "tailwind-merge": "latest"
+    "tailwind-merge": "latest",
+    "@capacitor/core": "latest",
+    "@capacitor/android": "latest",
+    "@capacitor/ios": "latest"
   },
   "devDependencies": {
     "typescript": "latest",
@@ -21,6 +28,7 @@
     "@types/node": "latest",
     "autoprefixer": "latest",
     "postcss": "latest",
-    "tailwindcss": "latest"
+    "tailwindcss": "latest",
+    "@capacitor/cli": "latest"
   }
 }

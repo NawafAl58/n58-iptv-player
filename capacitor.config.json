@@ -1,0 +1,6 @@
+{
+  "appId": "com.n58.iptv",
+  "appName": "N58 IPTV",
+  "webDir": "out",
+  "bundledWebRuntime": false
+}
