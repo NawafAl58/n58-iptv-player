@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Head from 'next/head';
 import Hls from 'hls.js';
-import { Search, Upload, Play, Tv, List, Globe, Film } from 'lucide-react';
+import { Search, Upload, Play, Tv, List, Globe, Film, Clapperboard, Tv2, Baby } from 'lucide-react';
 
 interface Channel {
   name: string;
@@ -11,9 +11,11 @@ interface Channel {
 }
 
 const DEFAULT_PLAYLISTS = [
-  { name: 'Arabic Channels', url: 'https://iptv-org.github.io/iptv/languages/ara.m3u', icon: Globe },
-  { name: 'General Movies', url: 'https://iptv-org.github.io/iptv/categories/movies.m3u', icon: Film },
-  { name: 'Public Domain', url: 'https://raw.githubusercontent.com/pndurette/public-domain-movies-m3u/master/public-domain-movies.m3u', icon: List },
+  { name: 'Arabic Channels / قنوات عربية', url: 'https://iptv-org.github.io/iptv/languages/ara.m3u', icon: Globe },
+  { name: 'Arabic Movies / أفلام عربية', url: 'https://iptv-org.github.io/iptv/categories/movies.m3u', icon: Clapperboard },
+  { name: 'Arabic Series / مسلسلات عربية', url: 'https://iptv-org.github.io/iptv/categories/series.m3u', icon: Tv2 },
+  { name: 'Anime & Cartoon / أنمي وكرتون', url: 'https://iptv-org.github.io/iptv/categories/animation.m3u', icon: Baby },
+  { name: 'Public Domain Movies', url: 'https://raw.githubusercontent.com/pndurette/public-domain-movies-m3u/master/public-domain-movies.m3u', icon: Film },
 ];
 
 export default function IPTVPlayer() {
@@ -91,7 +93,6 @@ export default function IPTVPlayer() {
   };
 
   useEffect(() => {
-    // Pre-load default Arabic playlist on mount
     loadPlaylistFromUrl(DEFAULT_PLAYLISTS[0].url);
   }, []);
 
