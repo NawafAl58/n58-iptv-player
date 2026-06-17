@@ -1,34 +1,29 @@
 {
-  "name": "iptv-player",
-  "version": "1.0.0",
+  "name": "n58-iptv-player",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "static": "next build",
-    "cap-copy": "npx cap copy",
-    "cap-open-ios": "npx cap open ios",
-    "cap-open-android": "npx cap open android"
+    "lint": "next lint"
   },
   "dependencies": {
-    "next": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "hls.js": "latest",
-    "lucide-react": "latest",
-    "clsx": "latest",
-    "tailwind-merge": "latest",
-    "@capacitor/core": "latest",
-    "@capacitor/android": "latest",
-    "@capacitor/ios": "latest"
+    "next": "14.1.0",
+    "react": "^18",
+    "react-dom": "^18",
+    "hls.js": "^1.5.7",
+    "lucide-react": "^0.330.0",
+    "clsx": "^2.1.0",
+    "tailwind-merge": "^2.2.1"
   },
   "devDependencies": {
-    "typescript": "latest",
-    "@types/react": "latest",
-    "@types/node": "latest",
-    "autoprefixer": "latest",
-    "postcss": "latest",
-    "tailwindcss": "latest",
-    "@capacitor/cli": "latest"
+    "typescript": "^5",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.0.1",
+    "postcss": "^8",
+    "tailwindcss": "^3.3.0"
   }
 }
