@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Head from 'next/head';
 import Hls from 'hls.js';
-import { Play, List, Settings, LogIn, PlusCircle, Monitor } from 'lucide-react';
+import { Play, List, Settings, LogIn, PlusCircle, Monitor, Tv } from 'lucide-react';
 
 interface Channel {
   name: string;
@@ -24,23 +24,34 @@ export default function IPTVPlayer() {
       const focusableElements = Array.from(document.querySelectorAll('.focusable')) as HTMLElement[];
       const currentIndex = focusableElements.indexOf(document.activeElement as HTMLElement);
 
-      if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+      if (e.key === 'ArrowDown') {
         const nextIndex = (currentIndex + 1) % focusableElements.length;
         focusableElements[nextIndex]?.focus();
         e.preventDefault();
-      } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+      } else if (e.key === 'ArrowUp') {
+        const prevIndex = currentIndex <= 0 ? focusableElements.length - 1 : currentIndex - 1;
+        focusableElements[prevIndex]?.focus();
+        e.preventDefault();
+      } else if (e.key === 'ArrowRight') {
+        const nextIndex = (currentIndex + 1) % focusableElements.length;
+        focusableElements[nextIndex]?.focus();
+        e.preventDefault();
+      } else if (e.key === 'ArrowLeft') {
         const prevIndex = currentIndex <= 0 ? focusableElements.length - 1 : currentIndex - 1;
         focusableElements[prevIndex]?.focus();
         e.preventDefault();
       } else if (e.key === 'Escape') {
-        if (view === 'player') setView('setup');
+        if (view === 'player') {
+          if (selectedChannel) setSelectedChannel(null);
+          else setView('setup');
+        }
         else if (view === 'setup') setView('login');
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [view]);
+  }, [view, selectedChannel]);
 
   useEffect(() => {
     const saved = localStorage.getItem('iptv_playlist');
@@ -154,69 +165,76 @@ export default function IPTVPlayer() {
   const filteredChannels = selectedGroup === 'All' ? channels : channels.filter(c => c.group === selectedGroup);
 
   return (
-    <div className="h-screen bg-background text-white flex overflow-hidden">
+    <div className="h-screen bg-background text-white flex flex-col overflow-hidden">
       <Head>
         <title>N58 IPTV Player</title>
       </Head>
 
-      {/* Sidebar */}
-      <div className="w-1/4 h-full glass border-r border-white/10 flex flex-col">
-        <div className="p-6 border-b border-white/10 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-purple neon-text">N58</h1>
-          <button 
-            onClick={() => setView('setup')} 
-            className="focusable p-2 hover:bg-white/10 rounded-lg focus-ring"
-          >
-            <Settings className="w-6 h-6" />
-          </button>
+      {/* Header / Categories */}
+      <div className="p-6 glass border-b border-white/10 flex items-center justify-between z-20">
+        <div className="flex items-center gap-6">
+          <h1 className="text-3xl font-bold text-purple neon-text mr-8">N58</h1>
+          <div className="flex gap-3 overflow-x-auto no-scrollbar max-w-[70vw]">
+            {groups.map(g => (
+              <button
+                key={g}
+                onClick={() => setSelectedGroup(g)}
+                className={`focusable px-6 py-2 rounded-full whitespace-nowrap focus-ring ${
+                  selectedGroup === g ? 'bg-iceBlue font-bold' : 'bg-white/10'
+                }`}
+              >
+                {g}
+              </button>
+            ))}
+          </div>
         </div>
-        
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          {filteredChannels.map((channel, i) => (
-            <button
-              key={i}
-              onClick={() => setSelectedChannel(channel)}
-              className={`focusable w-full text-left p-4 rounded-xl transition-all focus-ring ${
-                selectedChannel?.url === channel.url ? 'bg-purple/20 neon-border' : 'hover:bg-white/5'
-              }`}
-            >
-              <div className="font-bold truncate">{channel.name}</div>
-              <div className="text-sm text-white/40 truncate">{channel.group}</div>
-            </button>
-          ))}
-        </div>
+        <button 
+          onClick={() => setView('setup')} 
+          className="focusable p-3 hover:bg-white/10 rounded-full focus-ring"
+        >
+          <Settings className="w-6 h-6 text-white/60" />
+        </button>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col relative">
-        <div className="absolute top-0 left-0 right-0 p-6 z-10 bg-gradient-to-b from-black/80 to-transparent flex gap-4 overflow-x-auto no-scrollbar">
-          {groups.map(g => (
-            <button
-              key={g}
-              onClick={() => setSelectedGroup(g)}
-              className={`focusable px-6 py-2 rounded-full whitespace-nowrap focus-ring ${
-                selectedGroup === g ? 'bg-iceBlue font-bold' : 'bg-white/10'
-              }`}
-            >
-              {g}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex-1 bg-black flex items-center justify-center">
-          {selectedChannel ? (
+      {/* Main content Area */}
+      <div className="flex-1 overflow-hidden relative">
+        {selectedChannel ? (
+          <div className="absolute inset-0 bg-black flex items-center justify-center z-50">
             <video 
               ref={videoRef}
               controls
+              autoPlay
               className="focusable w-full h-full"
             />
-          ) : (
-            <div className="text-center space-y-4">
-              <Play className="w-20 h-20 mx-auto text-white/20" />
-              <p className="text-white/40 text-xl font-medium">Select a channel to start watching</p>
+          </div>
+        ) : (
+          <div className="h-full overflow-y-auto p-8 no-scrollbar">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+              {filteredChannels.map((channel, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSelectedChannel(channel)}
+                  className="focusable aspect-square group relative rounded-2xl overflow-hidden glass border-white/5 transition-all focus-ring hover:scale-105 active:scale-95 flex flex-col items-center justify-center p-4 text-center"
+                >
+                  <div className="w-16 h-16 mb-4 rounded-xl bg-purple/10 flex items-center justify-center neon-border group-focus:neon-border">
+                    <Tv className="w-8 h-8 text-purple" />
+                  </div>
+                  <div className="font-bold text-lg leading-tight line-clamp-2">{channel.name}</div>
+                  <div className="mt-1 text-xs text-white/40 uppercase tracking-widest">{channel.group}</div>
+                  
+                  {/* Neon overlay for focus state */}
+                  <div className="absolute inset-0 border-2 border-transparent group-focus:border-purple/50 group-focus:shadow-[inset_0_0_20px_rgba(168,85,247,0.2)] rounded-2xl pointer-events-none" />
+                </button>
+              ))}
             </div>
-          )}
-        </div>
+            {filteredChannels.length === 0 && (
+              <div className="h-full flex flex-col items-center justify-center text-white/20 space-y-4 pt-20">
+                <PlusCircle className="w-20 h-20" />
+                <p className="text-2xl">No channels found in this group</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
