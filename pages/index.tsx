@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import Hls from 'hls.js';
-import { Search, Upload, Play, Tv, List, Globe, Film, Clapperboard, Tv2, Baby, Info, Settings, User, LogOut } from 'lucide-react';
+import { Search, Upload, Play, Tv, List, Globe, Film, Clapperboard, Tv2, Baby, Info, Settings, User, LogOut, Subtitles, Languages } from 'lucide-react';
 
 interface Channel {
   name: string;
@@ -26,6 +26,8 @@ export default function IPTVPlayer() {
   const [currentChannel, setCurrentChannel] = useState<Channel | null>(null);
   const [activePlaylist, setActivePlaylist] = useState(DEFAULT_PLAYLISTS[0]);
   const [loading, setLoading] = useState(false);
+  const [subtitleUrl, setSubtitleUrl] = useState('');
+  const [showSubtitleInput, setShowSubtitleInput] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const parseM3U = (content: string) => {
@@ -106,6 +108,14 @@ export default function IPTVPlayer() {
     }
   }, [currentChannel]);
 
+  const handleSubtitleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && videoRef.current) {
+      const url = URL.createObjectURL(file);
+      setSubtitleUrl(url);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-purple-500/30 overflow-x-hidden">
       <Head>
@@ -152,7 +162,7 @@ export default function IPTVPlayer() {
         {/* Hero Section */}
         {!currentChannel && heroChannel && (
           <section className="relative h-[85vh] w-full px-6 md:px-12 mb-12 group">
-            <div className="absolute inset-0 rounded-3xl overflow-hidden mx-6 md:mx-12 mt-4">
+            <div className="absolute inset-0 rounded-3xl overflow-hidden mx-6 md:mx-12 mt-4 shadow-[0_0_50px_rgba(168,85,247,0.15)] border border-white/5">
               <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent z-10" />
               <div className="absolute inset-0 bg-gradient-to-r from-[#050505] via-[#050505]/40 to-transparent z-10" />
               <img 
@@ -167,7 +177,7 @@ export default function IPTVPlayer() {
                 <span className="w-2 h-2 rounded-full bg-[#38bdf8] animate-pulse shadow-[0_0_8px_#38bdf8]" />
                 Trending in {activePlaylist.name}
               </span>
-              <h2 className="text-6xl md:text-8xl font-black mb-6 leading-none">
+              <h2 className="text-6xl md:text-8xl font-black mb-6 leading-none tracking-tight">
                 {heroChannel.name}
               </h2>
               <p className="text-lg text-gray-400 mb-8 line-clamp-3 max-w-2xl font-medium">
@@ -176,7 +186,7 @@ export default function IPTVPlayer() {
               <div className="flex items-center gap-4">
                 <button 
                   onClick={() => setCurrentChannel(heroChannel)}
-                  className="bg-white text-black px-8 py-4 rounded-xl font-black flex items-center gap-3 hover:scale-105 transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-95"
+                  className="bg-white text-black px-8 py-4 rounded-xl font-black flex items-center gap-3 hover:scale-105 transition-all shadow-[0_0_30px_rgba(255,255,255,0.3)] active:scale-95"
                 >
                   <Play fill="black" size={24} /> تشغيل الآن / Watch Now
                 </button>
@@ -192,31 +202,81 @@ export default function IPTVPlayer() {
         {currentChannel && (
           <section className="px-6 md:px-12 mb-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
             <div className="max-w-6xl mx-auto">
-              <div className="glass rounded-3xl overflow-hidden border border-white/10 shadow-2xl shadow-purple-500/10 relative group">
-                <video 
-                  ref={videoRef} 
-                  controls 
-                  className="w-full aspect-video bg-black"
-                />
-                <button 
-                  onClick={() => setCurrentChannel(null)}
-                  className="absolute top-6 right-6 p-3 glass rounded-full border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/20"
-                >
-                  <LogOut className="rotate-180" size={20} />
-                </button>
+              <div className="glass rounded-3xl overflow-hidden border border-white/10 shadow-2xl shadow-purple-500/20 relative group p-1 bg-gradient-to-br from-white/10 to-transparent">
+                <div className="bg-black rounded-[22px] overflow-hidden relative">
+                  <video 
+                    ref={videoRef} 
+                    controls 
+                    className="w-full aspect-video bg-black"
+                  >
+                    {subtitleUrl && (
+                      <track 
+                        kind="subtitles" 
+                        src={subtitleUrl} 
+                        srcLang="ar" 
+                        label="Arabic" 
+                        default 
+                      />
+                    )}
+                  </video>
+                  
+                  {/* Subtitle Controls Overlay */}
+                  <div className="absolute top-6 left-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button 
+                      onClick={() => setShowSubtitleInput(!showSubtitleInput)}
+                      className="p-3 glass rounded-full border border-white/10 hover:bg-white/20 transition-all flex items-center gap-2 text-xs font-bold"
+                      title="Add Arabic Subtitles"
+                    >
+                      <Subtitles size={20} />
+                      {showSubtitleInput ? 'Close' : 'Subtitles'}
+                    </button>
+                    {showSubtitleInput && (
+                      <div className="glass px-4 py-2 rounded-xl border border-white/10 flex items-center gap-3 animate-in fade-in slide-in-from-left-4">
+                        <label className="text-[10px] uppercase font-black cursor-pointer hover:text-[#38bdf8]">
+                          Upload .vtt / .srt
+                          <input type="file" accept=".vtt,.srt" onChange={handleSubtitleUpload} className="hidden" />
+                        </label>
+                        <div className="w-px h-4 bg-white/10" />
+                        <input 
+                          type="text" 
+                          placeholder="Paste URL..." 
+                          className="bg-transparent text-xs focus:outline-none w-32"
+                          value={subtitleUrl}
+                          onChange={(e) => setSubtitleUrl(e.target.value)}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <button 
+                    onClick={() => {
+                      setCurrentChannel(null);
+                      setSubtitleUrl('');
+                      setShowSubtitleInput(false);
+                    }}
+                    className="absolute top-6 right-6 p-3 glass rounded-full border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/20"
+                  >
+                    <LogOut className="rotate-180" size={20} />
+                  </button>
+                </div>
               </div>
               <div className="mt-8 flex justify-between items-end">
                 <div>
-                  <h3 className="text-3xl font-black mb-2">{currentChannel.name}</h3>
+                  <div className="flex items-center gap-3 mb-2">
+                     <h3 className="text-3xl font-black">{currentChannel.name}</h3>
+                     <Languages className="text-[#a855f7]" size={20} />
+                  </div>
                   <div className="flex items-center gap-4 text-sm text-gray-400">
                     <span className="bg-[#a855f7]/20 text-[#a855f7] px-3 py-1 rounded-md border border-[#a855f7]/30 font-bold uppercase tracking-wider text-xs">Live HD</span>
                     <span>{currentChannel.group}</span>
                     <span className="flex items-center gap-1"><User size={14}/> 12.4k watching</span>
                   </div>
                 </div>
-                <button className="glass p-4 rounded-2xl border border-white/10 text-gray-400 hover:text-white transition-all">
-                  <Upload size={24}/>
-                </button>
+                <div className="flex items-center gap-3">
+                  <button className="glass p-4 rounded-2xl border border-white/10 text-gray-400 hover:text-white transition-all">
+                    <Upload size={24}/>
+                  </button>
+                </div>
               </div>
             </div>
           </section>
@@ -224,7 +284,7 @@ export default function IPTVPlayer() {
 
         {/* Content Grid */}
         <section className="px-6 md:px-12">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6">
             <h4 className="text-2xl font-black flex items-center gap-3">
               <div className="w-1.5 h-8 bg-[#a855f7] rounded-full shadow-[0_0_12px_#a855f7]" />
               {activePlaylist.name} Collection
@@ -234,7 +294,7 @@ export default function IPTVPlayer() {
                 <button
                   key={group}
                   onClick={() => setSelectedGroup(group)}
-                  className={`px-6 py-2 rounded-full text-sm font-bold transition-all border ${
+                  className={`px-6 py-2 rounded-full text-sm font-bold transition-all border whitespace-nowrap ${
                     selectedGroup === group 
                     ? 'bg-[#a855f7] border-[#a855f7] text-white shadow-[0_0_15px_#a855f7]/40' 
                     : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/30 hover:text-white'
@@ -259,6 +319,8 @@ export default function IPTVPlayer() {
                   key={idx}
                   onClick={() => {
                     setCurrentChannel(channel);
+                    setSubtitleUrl('');
+                    setShowSubtitleInput(false);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                   className="group relative aspect-[2/3] rounded-2xl overflow-hidden bg-[#111] border border-white/5 hover:border-[#a855f7]/50 transition-all duration-500 hover:-translate-y-2 active:scale-95"
@@ -354,6 +416,14 @@ export default function IPTVPlayer() {
         }
         ::-webkit-scrollbar-thumb:hover {
           background: #a855f7;
+        }
+        
+        video::cue {
+          background: rgba(0, 0, 0, 0.7);
+          color: white;
+          font-family: 'Inter', sans-serif;
+          font-weight: bold;
+          font-size: 0.8em;
         }
       `}</style>
     </div>
