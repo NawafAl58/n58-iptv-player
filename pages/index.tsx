@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import Hls from 'hls.js';
-import { Search, Upload, Play, Tv, List, Globe, Film, Clapperboard, Tv2, Baby, Info, Settings, User, LogOut, Subtitles, Languages, Trophy } from 'lucide-react';
+import { Search, Upload, Play, Tv, List, Globe, Film, Clapperboard, Tv2, Baby, Info, Settings, User, LogOut, Subtitles, Languages, Trophy, Zap } from 'lucide-react';
 
 interface Channel {
   name: string;
@@ -11,8 +11,9 @@ interface Channel {
 }
 
 const DEFAULT_PLAYLISTS = [
+  { name: 'World Cup 2026', ar: 'كأس العالم 2026', url: 'https://iptv-org.github.io/iptv/categories/sports.m3u', icon: Trophy, priority: ['beIN', 'SSC', 'Alkass', 'Abu Dhabi Sports', 'KSA Sports', 'Dubai Sports'] },
   { name: 'Arabic Channels', ar: 'قنوات عربية', url: 'https://iptv-org.github.io/iptv/languages/ara.m3u', icon: Globe },
-  { name: 'Sports', ar: 'القنوات الرياضية', url: 'https://iptv-org.github.io/iptv/categories/sports.m3u', icon: Trophy },
+  { name: 'Sports', ar: 'القنوات الرياضية', url: 'https://iptv-org.github.io/iptv/categories/sports.m3u', icon: Zap },
   { name: 'Arabic Movies', ar: 'أفلام عربية', url: 'https://iptv-org.github.io/iptv/categories/movies.m3u', icon: Clapperboard },
   { name: 'Arabic Series', ar: 'مسلسلات عربية', url: 'https://iptv-org.github.io/iptv/categories/series.m3u', icon: Tv2 },
   { name: 'Anime & Cartoon', ar: 'أنمي وكرتون', url: 'https://iptv-org.github.io/iptv/categories/animation.m3u', icon: Baby },
@@ -31,7 +32,7 @@ export default function IPTVPlayer() {
   const [showSubtitleInput, setShowSubtitleInput] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const parseM3U = (content: string) => {
+  const parseM3U = (content: string, priorityKeywords?: string[]) => {
     const lines = content.split('\n');
     const parsedChannels: Channel[] = [];
     const parsedGroups = new Set<string>(['All']);
@@ -58,9 +59,32 @@ export default function IPTVPlayer() {
         }
       }
     }
+
+    // If it's the World Cup category, filter and sort by priority Arabic channels
+    if (priorityKeywords) {
+      const filtered = parsedChannels.filter(c => 
+        priorityKeywords.some(key => c.name.toLowerCase().includes(key.toLowerCase()))
+      );
+      // Sort to put priority channels first
+      filtered.sort((a, b) => {
+        const aIdx = priorityKeywords.findIndex(key => a.name.toLowerCase().includes(key.toLowerCase()));
+        const bIdx = priorityKeywords.findIndex(key => b.name.toLowerCase().includes(key.toLowerCase()));
+        return aIdx - bIdx;
+      });
+      setChannels(filtered);
+      // For World Cup, we might just want to group by the channel providers or keep it simple
+      const wcGroups = new Set<string>(['All']);
+      filtered.forEach(c => {
+        priorityKeywords.forEach(key => {
+          if (c.name.toLowerCase().includes(key.toLowerCase())) wcGroups.add(key);
+        });
+      });
+      setGroups(Array.from(wcGroups));
+    } else {
+      setChannels(parsedChannels);
+      setGroups(Array.from(parsedGroups));
+    }
     
-    setChannels(parsedChannels);
-    setGroups(Array.from(parsedGroups));
     setSelectedGroup('All');
   };
 
@@ -70,7 +94,7 @@ export default function IPTVPlayer() {
     try {
       const res = await fetch(playlist.url);
       const text = await res.text();
-      parseM3U(text);
+      parseM3U(text, (playlist as any).priority);
     } catch (err) {
       console.error('Failed to fetch playlist:', err);
     } finally {
@@ -84,7 +108,7 @@ export default function IPTVPlayer() {
 
   const filteredChannels = useMemo(() => {
     return channels.filter(c => {
-      const matchesGroup = selectedGroup === 'All' || c.group === selectedGroup;
+      const matchesGroup = selectedGroup === 'All' || c.name.toLowerCase().includes(selectedGroup.toLowerCase()) || c.group === selectedGroup;
       const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesGroup && matchesSearch;
     });
@@ -129,16 +153,16 @@ export default function IPTVPlayer() {
           <h1 className="text-2xl font-black tracking-tighter neon-text-purple bg-gradient-to-r from-[#a855f7] to-[#38bdf8] bg-clip-text text-transparent">
             N58 PREMIUM
           </h1>
-          <div className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-400">
+          <div className="hidden lg:flex items-center gap-6 text-sm font-medium text-gray-400">
             {DEFAULT_PLAYLISTS.map((p) => (
               <button 
-                key={p.url} 
+                key={p.url + p.name} 
                 onClick={() => loadPlaylist(p)}
-                className={`hover:text-white transition-colors relative py-1 flex items-center gap-2 ${activePlaylist.url === p.url ? 'text-white' : ''}`}
+                className={`hover:text-white transition-colors relative py-1 flex items-center gap-2 whitespace-nowrap ${activePlaylist.name === p.name ? 'text-white' : ''}`}
               >
-                <p.icon size={16} />
+                <p.icon size={16} className={activePlaylist.name === p.name ? 'text-[#a855f7]' : ''} />
                 {p.name}
-                {activePlaylist.url === p.url && <div className="absolute -bottom-4 left-0 right-0 h-0.5 bg-[#a855f7] shadow-[0_0_10px_#a855f7]" />}
+                {activePlaylist.name === p.name && <div className="absolute -bottom-4 left-0 right-0 h-0.5 bg-[#a855f7] shadow-[0_0_10px_#a855f7]" />}
               </button>
             ))}
           </div>
@@ -318,7 +342,7 @@ export default function IPTVPlayer() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
               {filteredChannels.map((channel, idx) => (
                 <button
-                  key={idx}
+                  key={idx + channel.name}
                   onClick={() => {
                     setCurrentChannel(channel);
                     setSubtitleUrl('');
