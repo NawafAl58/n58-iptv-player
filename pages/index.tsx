@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import Hls from 'hls.js';
-import { Search, Upload, Play, Tv, List, Globe, Film, Clapperboard, Tv2, Baby, Info, Settings, User, LogOut, Subtitles, Languages } from 'lucide-react';
+import { Search, Upload, Play, Tv, List, Globe, Film, Clapperboard, Tv2, Baby, Info, Settings, User, LogOut, Subtitles, Languages, Trophy } from 'lucide-react';
 
 interface Channel {
   name: string;
@@ -12,6 +12,7 @@ interface Channel {
 
 const DEFAULT_PLAYLISTS = [
   { name: 'Arabic Channels', ar: 'قنوات عربية', url: 'https://iptv-org.github.io/iptv/languages/ara.m3u', icon: Globe },
+  { name: 'Sports', ar: 'القنوات الرياضية', url: 'https://iptv-org.github.io/iptv/categories/sports.m3u', icon: Trophy },
   { name: 'Arabic Movies', ar: 'أفلام عربية', url: 'https://iptv-org.github.io/iptv/categories/movies.m3u', icon: Clapperboard },
   { name: 'Arabic Series', ar: 'مسلسلات عربية', url: 'https://iptv-org.github.io/iptv/categories/series.m3u', icon: Tv2 },
   { name: 'Anime & Cartoon', ar: 'أنمي وكرتون', url: 'https://iptv-org.github.io/iptv/categories/animation.m3u', icon: Baby },
@@ -133,8 +134,9 @@ export default function IPTVPlayer() {
               <button 
                 key={p.url} 
                 onClick={() => loadPlaylist(p)}
-                className={`hover:text-white transition-colors relative py-1 ${activePlaylist.url === p.url ? 'text-white' : ''}`}
+                className={`hover:text-white transition-colors relative py-1 flex items-center gap-2 ${activePlaylist.url === p.url ? 'text-white' : ''}`}
               >
+                <p.icon size={16} />
                 {p.name}
                 {activePlaylist.url === p.url && <div className="absolute -bottom-4 left-0 right-0 h-0.5 bg-[#a855f7] shadow-[0_0_10px_#a855f7]" />}
               </button>
