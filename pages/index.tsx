@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import Hls from 'hls.js';
-import { Search, Upload, Play, Tv, List, Globe, Film, Clapperboard, Tv2, Baby, Info, Settings, User, LogOut, Subtitles, Languages, Trophy, Zap } from 'lucide-react';
+import { Search, Upload, Play, Tv, List, Globe, Film, Clapperboard, Tv2, Baby, Info, Settings, User, LogOut, Subtitles, Languages, Trophy, Zap, AlertCircle } from 'lucide-react';
 
 interface Channel {
   name: string;
@@ -60,19 +60,16 @@ export default function IPTVPlayer() {
       }
     }
 
-    // If it's the World Cup category, filter and sort by priority Arabic channels
     if (priorityKeywords) {
       const filtered = parsedChannels.filter(c => 
         priorityKeywords.some(key => c.name.toLowerCase().includes(key.toLowerCase()))
       );
-      // Sort to put priority channels first
       filtered.sort((a, b) => {
         const aIdx = priorityKeywords.findIndex(key => a.name.toLowerCase().includes(key.toLowerCase()));
         const bIdx = priorityKeywords.findIndex(key => b.name.toLowerCase().includes(key.toLowerCase()));
         return aIdx - bIdx;
       });
       setChannels(filtered);
-      // For World Cup, we might just want to group by the channel providers or keep it simple
       const wcGroups = new Set<string>(['All']);
       filtered.forEach(c => {
         priorityKeywords.forEach(key => {
@@ -147,7 +144,6 @@ export default function IPTVPlayer() {
         <title>N58 PREMIUM | Ultra Modern IPTV</title>
       </Head>
 
-      {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-white/5 px-6 py-4 flex justify-between items-center backdrop-blur-xl">
         <div className="flex items-center gap-8">
           <h1 className="text-2xl font-black tracking-tighter neon-text-purple bg-gradient-to-r from-[#a855f7] to-[#38bdf8] bg-clip-text text-transparent">
@@ -185,7 +181,6 @@ export default function IPTVPlayer() {
       </nav>
 
       <main className="pt-20 pb-20">
-        {/* Hero Section */}
         {!currentChannel && heroChannel && (
           <section className="relative h-[85vh] w-full px-6 md:px-12 mb-12 group">
             <div className="absolute inset-0 rounded-3xl overflow-hidden mx-6 md:mx-12 mt-4 shadow-[0_0_50px_rgba(168,85,247,0.15)] border border-white/5">
@@ -214,7 +209,7 @@ export default function IPTVPlayer() {
                   onClick={() => setCurrentChannel(heroChannel)}
                   className="bg-white text-black px-8 py-4 rounded-xl font-black flex items-center gap-3 hover:scale-105 transition-all shadow-[0_0_30px_rgba(255,255,255,0.3)] active:scale-95"
                 >
-                  <Play fill="black" size={24} /> تشغيل الآن / Watch Now
+                  <Play fill="black" size={24} /> Watch Now
                 </button>
                 <button className="glass px-8 py-4 rounded-xl font-bold flex items-center gap-3 border border-white/10 hover:bg-white/10 transition-all">
                   <Info size={24} /> More Info
@@ -224,7 +219,6 @@ export default function IPTVPlayer() {
           </section>
         )}
 
-        {/* Video Player Section */}
         {currentChannel && (
           <section className="px-6 md:px-12 mb-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
             <div className="max-w-6xl mx-auto">
@@ -246,7 +240,6 @@ export default function IPTVPlayer() {
                     )}
                   </video>
                   
-                  {/* Subtitle Controls Overlay */}
                   <div className="absolute top-6 left-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button 
                       onClick={() => setShowSubtitleInput(!showSubtitleInput)}
@@ -308,7 +301,6 @@ export default function IPTVPlayer() {
           </section>
         )}
 
-        {/* Content Grid */}
         <section className="px-6 md:px-12">
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6">
             <h4 className="text-2xl font-black flex items-center gap-3">
@@ -333,13 +325,13 @@ export default function IPTVPlayer() {
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
               {[...Array(12)].map((_, i) => (
-                <div key={i} className="aspect-[2/3] bg-white/5 rounded-2xl animate-pulse" />
+                <div key={i} className="aspect-[3/4] bg-white/5 rounded-2xl animate-pulse" />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-6 gap-y-10">
               {filteredChannels.map((channel, idx) => (
                 <button
                   key={idx + channel.name}
@@ -349,27 +341,36 @@ export default function IPTVPlayer() {
                     setShowSubtitleInput(false);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className="group relative aspect-[2/3] rounded-2xl overflow-hidden bg-[#111] border border-white/5 hover:border-[#a855f7]/50 transition-all duration-500 hover:-translate-y-2 active:scale-95"
+                  className="group flex flex-col gap-4 text-left relative transition-all duration-500 hover:-translate-y-2"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10 opacity-80" />
-                  {channel.logo ? (
-                    <img src={channel.logo} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center">
-                      <Tv className="text-white/10 mb-4" size={48} />
-                      <span className="text-xs text-gray-500 font-bold uppercase">{channel.name}</span>
+                  <div className="aspect-[4/3] rounded-2xl overflow-hidden bg-[#111] border border-white/5 glass transition-all duration-500 group-hover:border-[#a855f7]/50 group-hover:shadow-[0_0_30px_rgba(168,85,247,0.15)] relative">
+                    <div className="absolute inset-0 flex items-center justify-center p-6 bg-black/20">
+                      {channel.logo ? (
+                        <img 
+                          src={channel.logo} 
+                          alt="" 
+                          className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-110" 
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "";
+                            (e.target as HTMLImageElement).classList.add('hidden');
+                          }}
+                        />
+                      ) : null}
+                      <Tv className={`text-white/10 absolute ${channel.logo ? 'hidden' : ''}`} size={48} />
                     </div>
-                  )}
-                  <div className="absolute inset-0 flex items-center justify-center z-20 opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-sm">
-                    <div className="w-16 h-16 bg-[#a855f7] rounded-full flex items-center justify-center shadow-[0_0_30px_#a855f7] scale-75 group-hover:scale-100 transition-transform duration-500">
-                      <Play fill="white" size={32} />
+                    
+                    <div className="absolute inset-0 flex items-center justify-center z-20 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-[2px]">
+                      <div className="w-12 h-12 bg-[#a855f7] rounded-full flex items-center justify-center shadow-[0_0_20px_#a855f7] scale-75 group-hover:scale-100 transition-transform duration-500">
+                        <Play fill="white" size={24} />
+                      </div>
                     </div>
                   </div>
-                  <div className="absolute bottom-4 left-4 right-4 z-30">
-                    <p className="font-bold text-sm truncate mb-1 text-white group-hover:text-[#a855f7] transition-colors">
+                  
+                  <div className="px-1">
+                    <p className="font-bold text-sm text-white group-hover:text-[#38bdf8] transition-colors leading-tight mb-1 break-words line-clamp-2">
                       {channel.name}
                     </p>
-                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest truncate">
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest truncate">
                       {channel.group}
                     </p>
                   </div>
@@ -412,7 +413,7 @@ export default function IPTVPlayer() {
 
       <style jsx global>{`
         .glass {
-          background: rgba(255, 255, 255, 0.03);
+          background: rgba(255, 255, 255, 0.02);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
         }
