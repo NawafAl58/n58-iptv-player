@@ -18,15 +18,29 @@ export default function IPTVPlayer() {
   const [selectedGroup, setSelectedGroup] = useState<string>('All');
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Focus management for TV remotes
+  // Robust Spatial Navigation for TV Remotes
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Basic D-Pad navigation logic would go here
-      // For a demo, we rely on browser focus ring and .focus-ring class
+      const focusableElements = Array.from(document.querySelectorAll('.focusable')) as HTMLElement[];
+      const currentIndex = focusableElements.indexOf(document.activeElement as HTMLElement);
+
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+        const nextIndex = (currentIndex + 1) % focusableElements.length;
+        focusableElements[nextIndex]?.focus();
+        e.preventDefault();
+      } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+        const prevIndex = currentIndex <= 0 ? focusableElements.length - 1 : currentIndex - 1;
+        focusableElements[prevIndex]?.focus();
+        e.preventDefault();
+      } else if (e.key === 'Escape') {
+        if (view === 'player') setView('setup');
+        else if (view === 'setup') setView('login');
+      }
     };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [view]);
 
   useEffect(() => {
     const saved = localStorage.getItem('iptv_playlist');
@@ -96,7 +110,7 @@ export default function IPTVPlayer() {
           <button 
             autoFocus
             onClick={() => setView('setup')}
-            className="w-full py-4 bg-purple rounded-xl font-bold text-xl focus-ring transition-all hover:bg-purple/80 flex items-center justify-center gap-3"
+            className="focusable w-full py-4 bg-purple rounded-xl font-bold text-xl focus-ring transition-all hover:bg-purple/80 flex items-center justify-center gap-3"
           >
             <LogIn /> Get Started
           </button>
@@ -116,18 +130,18 @@ export default function IPTVPlayer() {
             placeholder="M3U Playlist URL"
             value={playlistUrl}
             onChange={(e) => setPlaylistUrl(e.target.value)}
-            className="w-full p-4 bg-white/5 border border-white/20 rounded-xl text-xl focus-ring"
+            className="focusable w-full p-4 bg-white/5 border border-white/20 rounded-xl text-xl focus-ring"
           />
           <div className="grid grid-cols-2 gap-4">
             <button 
               onClick={() => parseM3U(playlistUrl)}
-              className="py-4 bg-iceBlue rounded-xl font-bold text-xl focus-ring"
+              className="focusable py-4 bg-iceBlue rounded-xl font-bold text-xl focus-ring"
             >
               Load URL
             </button>
             <button 
               onClick={() => setView('player')}
-              className="py-4 bg-white/10 rounded-xl font-bold text-xl focus-ring"
+              className="focusable py-4 bg-white/10 rounded-xl font-bold text-xl focus-ring"
             >
               Cancel
             </button>
@@ -141,11 +155,18 @@ export default function IPTVPlayer() {
 
   return (
     <div className="h-screen bg-background text-white flex overflow-hidden">
+      <Head>
+        <title>N58 IPTV Player</title>
+      </Head>
+
       {/* Sidebar */}
       <div className="w-1/4 h-full glass border-r border-white/10 flex flex-col">
         <div className="p-6 border-b border-white/10 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-purple neon-text">N58</h1>
-          <button onClick={() => setView('setup')} className="p-2 hover:bg-white/10 rounded-lg focus-ring">
+          <button 
+            onClick={() => setView('setup')} 
+            className="focusable p-2 hover:bg-white/10 rounded-lg focus-ring"
+          >
             <Settings className="w-6 h-6" />
           </button>
         </div>
@@ -155,7 +176,7 @@ export default function IPTVPlayer() {
             <button
               key={i}
               onClick={() => setSelectedChannel(channel)}
-              className={`w-full text-left p-4 rounded-xl transition-all focus-ring ${
+              className={`focusable w-full text-left p-4 rounded-xl transition-all focus-ring ${
                 selectedChannel?.url === channel.url ? 'bg-purple/20 neon-border' : 'hover:bg-white/5'
               }`}
             >
@@ -173,7 +194,7 @@ export default function IPTVPlayer() {
             <button
               key={g}
               onClick={() => setSelectedGroup(g)}
-              className={`px-6 py-2 rounded-full whitespace-nowrap focus-ring ${
+              className={`focusable px-6 py-2 rounded-full whitespace-nowrap focus-ring ${
                 selectedGroup === g ? 'bg-iceBlue font-bold' : 'bg-white/10'
               }`}
             >
@@ -187,7 +208,7 @@ export default function IPTVPlayer() {
             <video 
               ref={videoRef}
               controls
-              className="w-full h-full"
+              className="focusable w-full h-full"
             />
           ) : (
             <div className="text-center space-y-4">
